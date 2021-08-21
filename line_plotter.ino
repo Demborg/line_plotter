@@ -33,14 +33,10 @@ void setup() {
 }
 
 long* calculatePosition(float x, float y) {
-  //Serial.println(x);
-  //Serial.println(y);
   static long result[2];
   float other_x = spool_distance - x;
   result[0] = round((sqrt(x*x + y*y) - calibration_distance) * steps_per_cm);
   result[1] = round(-(sqrt(other_x*other_x + y*y) - calibration_distance) * steps_per_cm);
-  //Serial.println(result[0]);
-  //Serial.println(result[1]);
   return result;
 }
 

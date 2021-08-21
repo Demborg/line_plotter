@@ -1,6 +1,5 @@
 from math import sin, cos, pi
 from typing import Tuple
-from time import sleep
 
 import serial
 import numpy as np
@@ -18,7 +17,6 @@ def main():
             )
             print(f"going to: ({x:.2f}, {y:.2f})")
             arduino.write(f"{x:.2f},{y:.2f};".encode())
-            # sleep(0.5)
 
             print(f"received: {arduino.readline().decode('ascii')}")
 
