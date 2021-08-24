@@ -44,6 +44,9 @@ void loop() {
   if (Serial.available() > 0){
     x = Serial.parseFloat();
     y = Serial.parseFloat();
+    while (Serial.available()) {
+      Serial.read();
+    }
 
     steppers.moveTo(calculatePosition(x, y));
     steppers.runSpeedToPosition(); // Blocks until all are in position

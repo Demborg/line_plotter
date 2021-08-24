@@ -7,7 +7,7 @@ import cv2
 
 OFFSETS = [(-1, -1), (-1, 1), (1, 1), (1, -1)]
 ORDERS = [[0, 3, 2, 1], [0, 1, 2, 3], [0, 1, 2, 3], [2, 1, 0, 3]]
-MAX_DEPTH = 7
+MAX_DEPTH = 8
 
 def get_circle(radius: float) -> Sequence[Tuple[float, float]]:
     return (
@@ -56,8 +56,8 @@ def get_hilbert_curve(img_path: str):
     size = gray.shape[0] / 2
     points = np.array(hilbert_recursive((size, size), size/2, gray))
     contours = [points.reshape((-1, 1, 2)).astype("int32")]
-    canvas = np.zeros(gray.shape)
-    cv2.drawContours(canvas, contours, -1, 255, 1)
+    canvas = np.ones(gray.shape) * 255
+    cv2.drawContours(canvas, contours, -1, 0, 1)
     cv2.imshow('contour',canvas)
 
     points /= gray.shape[0]
@@ -69,14 +69,16 @@ def get_hilbert_curve(img_path: str):
 
 
 def main():
+    stop = True
     with serial.Serial(port="/dev/ttyACM0", baudrate=9600) as arduino:
-        for x, y in get_hilbert_curve("cat.jpg"):
+        for x, y in get_hilbert_curve("me.jpg"):
             print(f"going to: ({x:.2f}, {y:.2f})")
             arduino.write(f"{x:.2f},{y:.2f};".encode())
-
             print(f"received: {arduino.readline().decode('ascii')}")
 
-        print("Closing port")
+            if stop and input("Are you ready [Y,n]") != "n":
+                stop = False
+
 
 if __name__ == "__main__":
     main()
