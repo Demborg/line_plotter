@@ -3,6 +3,7 @@ from typing import Sequence, Tuple
 import serial
 import numpy as np
 import cv2
+from tqdm import tqdm
 
 OFFSETS = [(-1, -1), (-1, 1), (1, 1), (1, -1)]
 ORDERS = [[0, 3, 2, 1], [0, 1, 2, 3], [0, 1, 2, 3], [2, 1, 0, 3]]
@@ -94,7 +95,8 @@ def get_crow_curve(img_path: str, points=500, N=10000):
     contour = np.random.randint(0, size, size=(points, 2))
     error = evaluate(contour, gray)
     magnitude = size/3
-    for i in range(N):
+    progressbar = tqdm(range(N))
+    for i in progressbar:
         mask = np.random.random((points, 1)) < 0.01
         magnitude *= 0.9998
         diffs = np.random.randint(-int(magnitude), int(magnitude), (10, points, 2))
@@ -105,7 +107,7 @@ def get_crow_curve(img_path: str, points=500, N=10000):
             if new_error < error:
                 contour = new_contour
                 error = new_error
-                print(f"{new_error=} @ {i=}")
+                progressbar.set_description(f"{new_error=}")
 
     draw_contour(contour, size)
     print(f"{evaluate(contour, gray)=}")
@@ -115,10 +117,11 @@ def get_crow_curve(img_path: str, points=500, N=10000):
 def main():
     stop = True
     with serial.Serial(port="/dev/ttyACM0", baudrate=9600) as arduino:
-        for x, y in get_crow_curve("kråka.jpg"):
-            print(f"going to: ({x:.2f}, {y:.2f})")
+        progressbar = tqdm(get_crow_curve("kråka.jpg")) 
+        for x, y in progressbar:
             arduino.write(f"{x:.2f},{y:.2f};".encode())
-            print(f"received: {arduino.readline().decode('ascii')}")
+            response = arduino.readline().decode('ascii').strip()
+            progressbar.set_description(response)
 
             if stop and input("Are you ready [Y,n]") != "n":
                 stop = False
