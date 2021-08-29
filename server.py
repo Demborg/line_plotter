@@ -89,21 +89,20 @@ def get_am_line(img_path: str, lines = 40, samples=500):
     contour = []
     for i in range(lines):
         for j in range(samples):
-            x = int(step * j + (i % 2) * (size - step * j * 2 -1))
+            x = int(step * (j + 0.5) + (i % 2) * (size - step * j * 2 -1))
             y = int((i + 0.5) * line_width)
-            y += (1 - gray[y, x] / 255) * line_width *0.4  * (1 - 2 * (j % 2))
+            img_slice = gray[y - line_width//2: y + line_width//2, x - step//2 : x + step//2]
+            y += (1 - np.mean(img_slice) / 255) * line_width *0.9  * (1 - 2 * (j % 2))
             contour.append((x, y))
     contour = np.array(contour)
     draw_contour(contour, size)
     return contour_to_canvas(contour, size)
 
 
-
-
 def main():
     stop = True
     with serial.Serial(port="/dev/ttyACM0", baudrate=9600) as arduino:
-        for x, y in get_am_line("y.png", lines=20):
+        for x, y in get_am_line("k.png", lines=40, samples=200):
             print(f"going to: ({x:.2f}, {y:.2f})")
             arduino.write(f"{x:.2f},{y:.2f};".encode())
             print(f"received: {arduino.readline().decode('ascii')}")
