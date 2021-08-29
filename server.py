@@ -62,25 +62,6 @@ def get_hilbert_curve(img_path: str):
     return contour_to_canvas(points, size)
 
 
-def get_crow_curve(img_path: str):
-    gray = read_gray(img_path, 1000)
-    size = gray.shape[0]
-    blur = cv2.GaussianBlur(gray, (11, 11), 0)
-
-    x0 = np.random.random((10,2)) * size
-    def func(x):
-        x = x.reshape(-1, 2)
-        canvas = np.ones((size, size)) * 255
-        cv2.drawContours(canvas, [x.astype("int32")], -1, 0, 10)
-        return np.mean((blur - canvas)**2)
-
-    print(f"{x0=}")
-    result = minimize(func, x0, method="Nelder-Mead")
-    print(f"{result=}")
-    contour = result.x.reshape(-1, 2).astype("int32")
-    draw_contour(contour, size)
-    
-
 def get_am_line(img_path: str, lines = 40, samples=500):
     gray = read_gray(img_path, 1000)
     size = gray.shape[0]
