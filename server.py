@@ -80,10 +80,42 @@ def get_am_line(img_path: str, lines = 40, samples=500):
     return contour_to_canvas(contour, size)
 
 
+def evaluate(contour, image):
+    contour = contour.reshape(-1, 2)
+    canvas = np.ones(image.shape) * 255
+    cv2.drawContours(canvas, [contour.astype("int32")], -1, 0, 1)
+    canvas = cv2.blur(canvas, (10, 10))
+    return np.mean(np.abs(canvas - image))
+
+def get_crow_curve(img_path: str, points=500, N=10000):
+    gray = read_gray(img_path, 1000)
+    size = gray.shape[0]
+
+    contour = np.random.randint(0, size, size=(points, 2))
+    error = evaluate(contour, gray)
+    magnitude = size/3
+    for i in range(N):
+        mask = np.random.random((points, 1)) < 0.01
+        magnitude *= 0.9998
+        diffs = np.random.randint(-int(magnitude), int(magnitude), (10, points, 2))
+        for diff in diffs:
+            new_contour = contour + mask * diff
+            new_contour = np.clip(new_contour, 1, size -1)
+            new_error = evaluate(new_contour, gray)
+            if new_error < error:
+                contour = new_contour
+                error = new_error
+                print(f"{new_error=} @ {i=}")
+
+    draw_contour(contour, size)
+    print(f"{evaluate(contour, gray)=}")
+    return contour_to_canvas(contour, size)
+
+
 def main():
     stop = True
     with serial.Serial(port="/dev/ttyACM0", baudrate=9600) as arduino:
-        for x, y in get_am_line("k.png", lines=40, samples=200):
+        for x, y in get_crow_curve("kråka.jpg"):
             print(f"going to: ({x:.2f}, {y:.2f})")
             arduino.write(f"{x:.2f},{y:.2f};".encode())
             print(f"received: {arduino.readline().decode('ascii')}")
