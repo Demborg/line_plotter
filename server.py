@@ -88,7 +88,7 @@ def evaluate(contour, image):
     canvas = cv2.blur(canvas, (10, 10))
     return np.mean(np.abs(canvas - image))
 
-def get_crow_curve(img_path: str, points=500, N=10000):
+def get_crow_curve(img_path: str, points=400, N=20000):
     gray = read_gray(img_path, 256)
     size = gray.shape[0]
 
@@ -97,8 +97,8 @@ def get_crow_curve(img_path: str, points=500, N=10000):
     magnitude = size/3
     progressbar = tqdm(range(N))
     for i in progressbar:
-        mask = np.random.random((points, 1)) < 0.01
-        magnitude *= 0.9998
+        mask = np.zeros((points, 1))
+        mask[np.random.randint(0, points)] = 1
         diffs = np.random.randint(-int(magnitude), int(magnitude), (10, points, 2))
         for diff in diffs:
             new_contour = contour + mask * diff
