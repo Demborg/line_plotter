@@ -89,7 +89,7 @@ def evaluate(contour, image):
     return np.mean(np.abs(canvas - image))
 
 def get_crow_curve(img_path: str, points=500, N=10000):
-    gray = read_gray(img_path, 1000)
+    gray = read_gray(img_path, 256)
     size = gray.shape[0]
 
     contour = np.random.randint(0, size, size=(points, 2))
