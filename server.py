@@ -1,5 +1,6 @@
 from typing import Sequence, Tuple
 
+import click
 import serial
 import numpy as np
 import cv2
@@ -113,11 +114,12 @@ def get_crow_curve(img_path: str, points=400, N=20000):
     print(f"{evaluate(contour, gray)=}")
     return contour_to_canvas(contour, size)
 
-
-def main():
+@click.command()
+@click.argument("image", type=click.Path(exists=True))
+def cli(image: str):
     stop = True
     with serial.Serial(port="/dev/ttyACM0", baudrate=9600) as arduino:
-        progressbar = tqdm(get_crow_curve("kråka.jpg")) 
+        progressbar = tqdm(get_crow_curve(image)) 
         for x, y in progressbar:
             arduino.write(f"{x:.2f},{y:.2f};".encode())
             response = arduino.readline().decode('ascii').strip()
@@ -125,7 +127,3 @@ def main():
 
             if stop and input("Are you ready [Y,n]") != "n":
                 stop = False
-
-
-if __name__ == "__main__":
-    main()
