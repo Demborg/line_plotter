@@ -116,9 +116,10 @@ def get_crow_curve(img_path: str, points=400, N=20000):
 
 @click.command()
 @click.argument("image", type=click.Path(exists=True))
-def cli(image: str):
+@click.option("--serial-port", default="/dev/ttyACM0", type=click.Path(exists=True))
+def cli(image: str, serial_port: str):
     stop = True
-    with serial.Serial(port="/dev/ttyACM0", baudrate=9600) as arduino:
+    with serial.Serial(port=serial_port, baudrate=9600) as arduino:
         progressbar = tqdm(get_crow_curve(image)) 
         for x, y in progressbar:
             arduino.write(f"{x:.2f},{y:.2f};".encode())
