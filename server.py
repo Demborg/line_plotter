@@ -23,7 +23,7 @@ def draw_contour(contour, size):
     canvas = np.ones((size, size)) * 255
     cv2.drawContours(canvas, [contour.astype("int32")], -1, 0, 1)
     cv2.imshow('contour',canvas)
-    cv2.waitKey(0)
+    cv2.waitKey(2000)
 
 
 def contour_to_canvas(contour, size):
@@ -36,7 +36,6 @@ def get_contour(img_path: str) -> Sequence[Tuple[float, float]]:
     cv2.imshow('bin',th)
     contours, hierarchy = cv2.findContours(th,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
     contour = np.concatenate(contours[1:]).squeeze()
-    import ipdb; ipdb.set_trace()
     draw_contour(contour, gray.shape[0])
     return contour_to_canvas(contour, gray.shape[0])
 
