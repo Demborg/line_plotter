@@ -113,17 +113,19 @@ def get_crow_curve(img_path: str, points=400, N=20000):
     print(f"{evaluate(contour, gray)=}")
     return contour_to_canvas(contour, size)
 
+
 @click.command()
 @click.argument("image", type=click.Path(exists=True))
 @click.option("--serial-port", default="/dev/ttyACM0", type=click.Path(exists=True))
 def cli(image: str, serial_port: str):
-    stop = True
     with serial.Serial(port=serial_port, baudrate=9600) as arduino:
-        progressbar = tqdm(get_crow_curve(image)) 
-        for x, y in progressbar:
-            arduino.write(f"{x:.2f},{y:.2f};".encode())
-            response = arduino.readline().decode('ascii').strip()
-            progressbar.set_description(response)
+        curve = get_crow_curve(image)
+        def command_and_await(x: float, y: float) -> str:
+                    arduino.write(f"{x:.2f},{y:.2f};".encode())
+                    return arduino.readline().decode('ascii').strip()
 
-            if stop and input("Are you ready [Y,n]") != "n":
-                stop = False
+        command_and_await(*curve[0])
+        click.confirm("Are you ready to put pen to paper?", abort=True, default=True)
+        progressbar = tqdm(curve) 
+        for x, y in progressbar:
+            progressbar.set_description(command_and_await(x, y))
