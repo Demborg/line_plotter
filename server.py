@@ -23,21 +23,17 @@ def draw_contour(contour, size):
     canvas = np.ones((size, size)) * 255
     cv2.drawContours(canvas, [contour.astype("int32")], -1, 0, 1)
     cv2.imshow('contour',canvas)
-    cv2.waitKey(2000)
 
 
 def contour_to_canvas(contour, size):
     return contour * (20 / size) + 6
 
 
-def get_contour(img_path: str) -> Sequence[Tuple[float, float]]:
-    gray = read_gray(img_path)
+def get_contour(gray: np.ndarray) -> Sequence[Tuple[float, float]]:
     ret, th = cv2.threshold(gray,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
     cv2.imshow('bin',th)
     contours, hierarchy = cv2.findContours(th,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-    contour = np.concatenate(contours[1:]).squeeze()
-    draw_contour(contour, gray.shape[0])
-    return contour_to_canvas(contour, gray.shape[0])
+    return np.concatenate(contours[1:]).squeeze()
 
 
 def hilbert_recursive(point, size, image, depth = 0, offsets = OFFSETS):
@@ -54,17 +50,13 @@ def hilbert_recursive(point, size, image, depth = 0, offsets = OFFSETS):
     return points
 
 
-def get_hilbert_curve(img_path: str):
-    gray = read_gray(img_path)
+def get_hilbert_curve(gray: np.ndarray):
     size = gray.shape[0]
     points = np.array(hilbert_recursive((size/2, size/2), size, gray))
-    contour = points.reshape((-1, 1, 2))
-    draw_contour(contour, size)
-    return contour_to_canvas(points, size)
+    return points.reshape((-1, 2))
 
 
-def get_am_line(img_path: str, lines = 40, samples=500):
-    gray = read_gray(img_path, 1000)
+def get_am_line(gray: np.ndarray, lines = 40, samples=500):
     size = gray.shape[0]
     line_width = size // lines 
     step = size // samples
@@ -76,9 +68,7 @@ def get_am_line(img_path: str, lines = 40, samples=500):
             img_slice = gray[y - line_width//2: y + line_width//2, x - step//2 : x + step//2]
             y += (1 - np.mean(img_slice) / 255) * line_width *0.9  * (1 - 2 * (j % 2))
             contour.append((x, y))
-    contour = np.array(contour)
-    draw_contour(contour, size)
-    return contour_to_canvas(contour, size)
+    return np.array(contour)
 
 
 def evaluate(contour, image):
@@ -88,10 +78,9 @@ def evaluate(contour, image):
     canvas = cv2.blur(canvas, (10, 10))
     return np.mean(np.abs(canvas - image))
 
-def get_crow_curve(img_path: str, points=400, N=20000):
-    gray = read_gray(img_path, 256)
-    size = gray.shape[0]
 
+def get_crow_curve(gray: np.ndarray, points=400, N=2000):
+    size = gray.shape[0]
     contour = np.random.randint(0, size, size=(points, 2))
     error = evaluate(contour, gray)
     magnitude = size/3
@@ -108,23 +97,25 @@ def get_crow_curve(img_path: str, points=400, N=20000):
                 contour = new_contour
                 error = new_error
                 progressbar.set_description(f"{new_error=}")
-
-    draw_contour(contour, size)
-    print(f"{evaluate(contour, gray)=}")
-    return contour_to_canvas(contour, size)
+    return contour
 
 
 @click.command()
 @click.argument("image", type=click.Path(exists=True))
+@click.option("--image-size", default=1024)
 @click.option("--serial-port", default="/dev/ttyACM0", type=click.Path(exists=True))
-def cli(image: str, serial_port: str):
+def cli(image: str, image_size: int, serial_port: str):
+    gray = read_gray(image, image_size)
+    curve = get_contour(gray)
+    draw_contour(curve, image_size)
+    curve = contour_to_canvas(curve, image_size)
     with serial.Serial(port=serial_port, baudrate=9600) as arduino:
-        curve = get_crow_curve(image)
         def command_and_await(x: float, y: float) -> str:
                     arduino.write(f"{x:.2f},{y:.2f};".encode())
                     return arduino.readline().decode('ascii').strip()
+        cv2.waitKey(2000)
 
-        command_and_await(*curve[0])
+        click.echo(command_and_await(*curve[0]))
         click.confirm("Are you ready to put pen to paper?", abort=True, default=True)
         progressbar = tqdm(curve) 
         for x, y in progressbar:
