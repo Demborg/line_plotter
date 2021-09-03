@@ -100,13 +100,17 @@ def get_crow_curve(gray: np.ndarray, points=400, N=2000):
     return contour
 
 
+methods = {"crow": get_crow_curve, "hilbert": get_hilbert_curve, "contour": get_contour}
+
+
 @click.command()
 @click.argument("image", type=click.Path(exists=True))
 @click.option("--image-size", default=1024)
+@click.option("--method", default="crow", type=click.Choice(methods.keys()))
 @click.option("--serial-port", default="/dev/ttyACM0", type=click.Path(exists=True))
-def cli(image: str, image_size: int, serial_port: str):
+def cli(image: str, image_size: int, method: str, serial_port: str):
     gray = read_gray(image, image_size)
-    curve = get_contour(gray)
+    curve = methods[method](gray)
     draw_contour(curve, image_size)
     curve = contour_to_canvas(curve, image_size)
     with serial.Serial(port=serial_port, baudrate=9600) as arduino:
