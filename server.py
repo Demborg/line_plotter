@@ -102,7 +102,26 @@ def get_crow_curve(gray: np.ndarray, points=300, iterations=20000):
     return contour
 
 
-methods = {"crow": get_crow_curve, "am": get_am_line, "hilbert": get_hilbert_curve, "contour": get_contour}
+def get_circle_curve(gray: np.ndarray, num_nodes=100, points=300, iterations=20000):
+    generator = np.random.default_rng(seed=42)
+    size = gray.shape[0]
+    angles = np.linspace(0, 2 * np.pi, num_nodes)
+    nodes = ((np.stack([np.sin(angles), np.cos(angles)]) + 1) * size / 2).T
+    contour = generator.choice(nodes, points)
+    error = evaluate(contour, gray)
+    progressbar = tqdm(range(iterations))
+    for _ in progressbar:
+        for index in np.random.random_integers(len(contour) - 1, size=(10)):
+            new_contour = contour.copy()
+            new_contour[index, :] = generator.choice(nodes, 1)
+            new_error = evaluate(new_contour, gray)
+            if new_error < error:
+                contour = new_contour
+                error = new_error
+                progressbar.set_description(f"{new_error=}")
+    return contour
+
+methods = {"crow": get_crow_curve, "am": get_am_line, "hilbert": get_hilbert_curve, "contour": get_contour, "circle": get_circle_curve}
 
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
