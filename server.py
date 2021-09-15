@@ -25,7 +25,10 @@ def draw_contour(contour, size):
 
 
 def contour_to_canvas(contour, size):
-    return contour * (20 / size) + 6
+    contour *= (20 / size)
+    contour[:, 0] += 6
+    contour[:, 1] += 16
+    return contour
 
 
 def get_contour(gray: np.ndarray) -> Sequence[Tuple[float, float]]:
