@@ -121,7 +121,46 @@ def get_circle_curve(gray: np.ndarray, num_nodes=100, points=300, iterations=200
                 progressbar.set_description(f"{new_error=}")
     return contour
 
-methods = {"crow": get_crow_curve, "am": get_am_line, "hilbert": get_hilbert_curve, "contour": get_contour, "circle": get_circle_curve}
+
+def get_ray_circle_curve(gray: np.ndarray, num_nodes=100, points=300, iterations=20000):
+    size = gray.shape[0]
+    angles = np.linspace(0, 2 * np.pi, num_nodes)
+    nodes = ((np.stack([np.sin(angles), np.cos(angles)]) + 1) * size / 2).T
+    votes = np.zeros((num_nodes, num_nodes))
+    samples = np.zeros(gray.shape)
+    for _ in tqdm(range(iterations)):
+        coord = np.random.random_integers(0, size - 1, size=(2))
+        if sum((coord - size / 2) ** 2) > (size/2) ** 2: 
+            continue
+        samples[coord[0], coord[1]] += 1
+        directions = np.random.random(255 - gray[coord[0], coord[1]]) * np.pi
+        for dir in directions:
+            normal = np.array((np.cos(dir), np.sin(dir)))
+            x = 2 * coord / size - 1
+            thing = x @ normal
+            l1 = - thing + np.sqrt(thing ** 2 - x @ x + 1)
+            l2 = - thing - np.sqrt(thing ** 2 - x @ x + 1)
+            r1 = x + normal * l1
+            r2 = x + normal * l2
+            i = np.argmin(np.linalg.norm(nodes - (r1 + 1) * size / 2, axis=1))
+            j = np.argmin(np.linalg.norm(nodes - (r2 + 1) * size / 2, axis=1))
+            if i != j:
+                votes[i, j] += 1 / np.linalg.norm(nodes[i, :] - nodes[j, :])
+                votes[j, i] += 1 / np.linalg.norm(nodes[i, :] - nodes[j, :])
+    cv2.imshow("votes", votes / np.max(votes))
+    cv2.imshow("samples", samples / np.max(samples))
+
+    contour = []
+    index = 0
+    indices = np.array(range(num_nodes))
+    for _ in range(points):
+        index = np.random.choice(indices, p=votes[index] / sum(votes[index]))
+        contour.append(nodes[index])
+
+    return np.array(contour)
+
+
+methods = {"crow": get_crow_curve, "am": get_am_line, "hilbert": get_hilbert_curve, "contour": get_contour, "circle": get_ray_circle_curve}
 
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
