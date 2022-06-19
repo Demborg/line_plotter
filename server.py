@@ -160,7 +160,7 @@ def get_ray_circle_curve(gray: np.ndarray, num_nodes=100, points=300, iterations
     return np.array(contour)
 
 def get_awsome_simon_line(gray: np.ndarray):
-    bools = gray < 200
+    bools = (gray / 255) ** 0.75 < np.random.random(size=gray.shape)
     initial_sum = np.sum(bools)
     p = np.array([0, 0])
     contour = []
