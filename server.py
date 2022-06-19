@@ -159,8 +159,37 @@ def get_ray_circle_curve(gray: np.ndarray, num_nodes=100, points=300, iterations
 
     return np.array(contour)
 
+def get_awsome_simon_line(gray: np.ndarray):
+    bools = gray < 200
+    initial_sum = np.sum(bools)
+    p = np.array([0, 0])
+    contour = []
+    bar = tqdm(total=np.sum(bools))
+    current_sum = np.sum(bools)
+    while current_sum / initial_sum > 0.01:
+        bar.update()
+        for r in range(1, len(bools) * 2):
+            for x in range(-r, r):
+                if not (0 < p[0] + x < len(bools)):
+                    continue
+                for y in [-r +x, r - x]:
+                    q = p + [x, y]
+                    if 0 < q[1] < len(bools) and bools[q[0], q[1]]:
+                        current_sum -= 1
+                        contour.append([q[1], q[0]])
+                        bools[q[0], q[1]] = False
+                        p = q
+                        break
+                else:
+                    continue
+                break
+            else:
+                continue
+            break
+    return np.array(contour).astype(np.float64)
 
-methods = {"crow": get_crow_curve, "am": get_am_line, "hilbert": get_hilbert_curve, "contour": get_contour, "circle": get_ray_circle_curve}
+
+methods = {"crow": get_crow_curve, "am": get_am_line, "hilbert": get_hilbert_curve, "contour": get_contour, "circle": get_ray_circle_curve, "simon": get_awsome_simon_line}
 
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
@@ -171,7 +200,8 @@ methods = {"crow": get_crow_curve, "am": get_am_line, "hilbert": get_hilbert_cur
 @click.option("--method_json", type=str)
 def cli(image: str, image_size: int, method: str, serial_port: str, method_json: str):
     gray = read_gray(image, image_size)
-    curve = methods[method](gray, **json.loads(method_json))
+    kwargs = json.loads(method_json) if method_json else {}
+    curve = methods[method](gray, **kwargs)
     draw_contour(curve, image_size)
     curve = contour_to_canvas(curve, image_size)
     with serial.Serial(port=serial_port, baudrate=9600) as arduino:
