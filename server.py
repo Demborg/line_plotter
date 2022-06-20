@@ -160,13 +160,13 @@ def get_ray_circle_curve(gray: np.ndarray, num_nodes=100, points=300, iterations
     return np.array(contour)
 
 def get_awsome_simon_line(gray: np.ndarray):
-    bools = (gray / 255) ** 0.75 < np.random.random(size=gray.shape)
+    bools = (gray / 255) ** 0.5 < np.random.random(size=gray.shape)
     initial_sum = np.sum(bools)
     p = np.array([0, 0])
     contour = []
     bar = tqdm(total=np.sum(bools))
     current_sum = np.sum(bools)
-    while current_sum / initial_sum > 0.01:
+    while current_sum / initial_sum > 0.001:
         bar.update()
         for r in range(1, len(bools) * 2):
             for x in range(-r, r):
