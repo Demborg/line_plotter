@@ -25,8 +25,8 @@ def draw_contour(contour, size):
 
 
 def contour_to_canvas(contour, size):
-    contour *= (20 / size)
-    contour[:, 0] += 6
+    contour *= (22 / size)
+    contour[:, 0] += 7
     contour[:, 1] += 16
     return contour
 
