@@ -160,29 +160,39 @@ def get_ray_circle_curve(gray: np.ndarray, num_nodes=100, points=300, iterations
     return np.array(contour)
 
 def get_awsome_simon_line(gray: np.ndarray):
-    bools = (gray / 255) ** 0.5 < np.random.random(size=gray.shape)
-    initial_sum = np.sum(bools)
+    toVisit = (gray / 255) ** 0.5 < np.random.random(size=gray.shape)
+    visited = np.full(toVisit.shape, False) 
+    initial_sum = np.sum(toVisit)
     p = np.array([0, 0])
     contour = []
-    bar = tqdm(total=np.sum(bools))
-    current_sum = np.sum(bools)
+    bar = tqdm(total=np.sum(toVisit))
+    current_sum = np.sum(toVisit)
     while current_sum / initial_sum > 0.001:
         bar.update()
-        for r in range(1, len(bools) * 2):
-            for x in range(-r, r):
-                if not (0 < p[0] + x < len(bools)):
-                    continue
-                for y in [-r +x, r - x]:
-                    q = p + [x, y]
-                    if 0 < q[1] < len(bools) and bools[q[0], q[1]]:
-                        current_sum -= 1
-                        contour.append([q[1], q[0]])
-                        bools[q[0], q[1]] = False
-                        p = q
+        angles = np.random.random(100) * 2 * np.pi
+        directions = np.stack([np.sin(angles), np.cos(angles)]).T
+        distances = np.zeros(angles.shape)
+        for r in range(1, len(toVisit) * 2):
+            distances += 1
+
+            for i, dir in enumerate(directions):
+                while True:
+                    q = np.array(p + np.round(dir * distances[i]), dtype=int)
+                    if not all(0 <= x < len(toVisit) for x in q):
                         break
-                else:
-                    continue
-                break
+                    if visited[q[0], q[1]]:
+                        distances[i] +=1
+                    else:
+                        break
+                if not all(0 <= x < len(toVisit) for x in q):
+                        continue
+                if toVisit[q[0], q[1]]:
+                    current_sum -= 1
+                    contour.append([q[1], q[0]])
+                    toVisit[q[0], q[1]] = False
+                    visited[q[0], q[1]] = True
+                    p = q
+                    break
             else:
                 continue
             break
