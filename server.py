@@ -159,47 +159,36 @@ def get_ray_circle_curve(gray: np.ndarray, num_nodes=100, points=300, iterations
 
     return np.array(contour)
 
-def get_awsome_simon_line(gray: np.ndarray):
+def get_salesman(gray: np.ndarray):
+
+    def transition(original_length, swaped_length, t):
+        if swaped_length <= original_length:
+            return True
+        return np.exp(-(swaped_length - original_length) / t) >= np.random.random()
+    
     toVisit = (gray / 255) ** 0.5 < np.random.random(size=gray.shape)
-    visited = np.full(toVisit.shape, False) 
-    initial_sum = np.sum(toVisit)
-    p = np.array([0, 0])
-    contour = []
-    bar = tqdm(total=np.sum(toVisit))
-    current_sum = np.sum(toVisit)
-    while current_sum / initial_sum > 0.001:
-        bar.update()
-        angles = np.random.random(100) * 2 * np.pi
-        directions = np.stack([np.sin(angles), np.cos(angles)]).T
-        distances = np.zeros(angles.shape)
-        for r in range(1, len(toVisit) * 2):
-            distances += 1
+    contour = np.stack(np.where(toVisit)).T
+    lengths = np.sum(contour ** 2, axis=1)
+    dist = np.sqrt(-2 * contour @ contour.T + lengths.reshape(1, -1) + lengths.reshape(-1, 1))
+    order = np.random.permutation(np.array(range(len(contour))))
 
-            for i, dir in enumerate(directions):
-                while True:
-                    q = np.array(p + np.round(dir * distances[i]), dtype=int)
-                    if not all(0 <= x < len(toVisit) for x in q):
-                        break
-                    if visited[q[0], q[1]]:
-                        distances[i] +=1
-                    else:
-                        break
-                if not all(0 <= x < len(toVisit) for x in q):
-                        continue
-                if toVisit[q[0], q[1]]:
-                    current_sum -= 1
-                    contour.append([q[1], q[0]])
-                    toVisit[q[0], q[1]] = False
-                    visited[q[0], q[1]] = True
-                    p = q
-                    break
-            else:
-                continue
-            break
-    return np.array(contour).astype(np.float64)
+    bar = tqdm(np.linspace(1, 0, 10000))
+    for b in bar:
+        t = 100 * b ** 2
+        if transition(dist[order[1], order[2]], dist[order[0], order[2]], t):
+            order[[0, 1]] = order[[1,  0]]
+        for i in range(1, len(contour) - 2):
+            original_length = dist[order[i-1], order[i]] + dist[order[i+1], order[i+2]]
+            swaped_length = dist[order[i-1], order[i+1]] + dist[order[i], order[i+2]]
+            if  transition(original_length, swaped_length, t):
+                order[[i, i+1]] = order[[i+1, i]]
+        if transition(dist[order[-3], order[-2]], dist[order[-3], order[-1]], t):
+            order[[-2, -1]] = order[[-1,  -2]]
+        bar.set_description(f"{t=:.3f} mean length={sum(dist[k, m] for k, m in zip(order, order[1:]))/len(order):.3f}")
+    return np.array(contour[order, :]).astype(np.float64)
 
 
-methods = {"crow": get_crow_curve, "am": get_am_line, "hilbert": get_hilbert_curve, "contour": get_contour, "circle": get_ray_circle_curve, "simon": get_awsome_simon_line}
+methods = {"crow": get_crow_curve, "am": get_am_line, "hilbert": get_hilbert_curve, "contour": get_contour, "circle": get_ray_circle_curve, "salesman": get_salesman}
 
 
 @click.command(context_settings=dict(ignore_unknown_options=True))
